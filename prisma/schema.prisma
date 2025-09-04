@@ -1,0 +1,41 @@
+datasource db {
+  provider = "postgresql" // or "mysql" or "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  friendships1 Friendship[] @relation("FriendshipUser1")
+  friendships2 Friendship[] @relation("FriendshipUser2")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  content    String
+  senderId   Int
+  receiverId Int
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  user1Id   Int
+  user2Id   Int
+  user1     User     @relation("FriendshipUser1", fields: [user1Id], references: [id])
+  user2     User     @relation("FriendshipUser2", fields: [user2Id], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([user1Id, user2Id]) // Prevent duplicate friendships
+}

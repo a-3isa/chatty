@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: #f4f4f4;
+      }
+      .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        text-align: center;
+      }
+      input,
+      button {
+        width: 80%;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .link-btn {
+        background: #28a745;
+      }
+      .link-btn:hover {
+        background: #1e7e34;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Login</h2>
+      <input type="text" id="login-username" placeholder="Username" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p id="login-message"></p>
+      <button class="link-btn" onclick="window.location.href='register.html'">
+        Go to Register
+      </button>
+    </div>
+
+    <script>
+      async function login() {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+
+        const res = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await res.json();
+        document.getElementById('login-message').textContent =
+          JSON.stringify(data);
+
+        console.log(res);
+        console.log(data);
+
+        // If login success, save token
+        if (res.ok && data.accessToken) {
+          console.log('sadasd');
+          localStorage.setItem('authToken', data.accessToken);
+          localStorage.setItem('userId', data.userId);
+          document.getElementById('login-message').textContent =
+            '✅ Login successful!';
+          setTimeout(() => {
+            window.location.href = 'chat.html';
+          }, 500);
+        }
+      }
+    </script>
+  </body>
+</html>
