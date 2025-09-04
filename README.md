@@ -1,83 +1,316 @@
-Chatty
+# Chatty - Real-Time Chat Application
 
-Chatty is a real-time one-on-one chat application built with NestJS, Prisma, REST APIs, and WebSockets. It enables seamless, low-latency communication between users, making it ideal for applications requiring instant messaging capabilities.
+A modern real-time chat application built with NestJS backend and simple HTML frontend, featuring user authentication, WebSocket-based messaging, and persistent message storage.
 
-🚀 Features
+## 🚀 Features
 
-Real-Time Messaging: Utilizes WebSockets for instant, bi-directional communication between users.
+- **Real-time Messaging**: Instant message delivery using WebSockets with Socket.IO
+- **User Authentication**: Secure JWT-based authentication with Passport
+- **User Management**: Registration and login system
+- **Persistent Messages**: All messages stored in PostgreSQL database with Prisma ORM
+- **Simple UI**: Clean, responsive HTML interface
+- **Cross-platform**: Works on desktop and mobile browsers
 
-User Authentication: Secure login and registration mechanisms to ensure user privacy.
+## 🛠️ Technology Stack
 
-Message Persistence: Employs Prisma ORM with PostgreSQL for reliable message storage and retrieval.
+### Backend
 
-RESTful API: Provides a REST API for managing user profiles and fetching chat histories.
+- **Framework**: NestJS (Node.js)
+- **Language**: TypeScript
+- **Database**: PostgreSQL
+- **ORM**: Prisma
+- **Authentication**: JWT + Passport
+- **Real-time**: Socket.IO
+- **Validation**: class-validator + class-transformer
+- **Password Hashing**: bcrypt
 
-Typing Indicators: Real-time feedback on user typing status.
+### Frontend
 
-Message Status: Indicators for message delivery and read receipts.
-The Right Software
+- **HTML5**: Semantic markup
+- **CSS3**: Custom styling
+- **JavaScript**: ES6+ features
+- **WebSockets**: Socket.IO client
 
-🛠️ Technologies Used
+### Development Tools
 
-NestJS: A progressive Node.js framework for building efficient and scalable server-side applications.
+- **Linting**: ESLint
+- **Code Formatting**: Prettier
+- **Testing**: Jest
+- **Build Tool**: NestJS CLI
 
-Prisma: An ORM for Node.js and TypeScript, providing a type-safe database client.
+## 📋 Prerequisites
 
-WebSocket: Protocol for full-duplex communication channels over a single TCP connection.
+Before running this application, make sure you have the following installed:
 
-PostgreSQL: A powerful, open-source relational database system.
+- Node.js (v16 or higher)
+- npm or yarn
+- PostgreSQL database
+- Git
 
-Swagger: API documentation and testing tool integrated via NestJS.
+## 🔧 Installation
 
-📦 Installation
+1. **Clone the repository**
 
-1. Clone the Repository
-   git clone https://github.com/a-3isa/chatty.git
+   ```bash
+   git clone <repository-url>
    cd chatty
+   ```
 
-2. Install Dependencies
+2. **Install dependencies**
+
+   ```bash
    npm install
+   ```
 
-3. Set Up Environment Variables
+3. **Environment Setup**
+   Create a `.env` file in the root directory:
 
-Create a .env file in the root directory and configure the following variables:
+   ```env
+   DATABASE_URL="postgresql://username:password@localhost:5432/chatty_db"
+   JWT_SECRET="your-super-secret-jwt-key"
+   PORT=3000
+   ```
 
-DATABASE_URL="postgresql://user:password@localhost:5432/chatty"
-JWT_SECRET="your_jwt_secret"
+4. **Database Setup**
 
-4. Run Database Migrations
+   ```bash
+   # Generate Prisma client
+   npx prisma generate
+
+   # Run database migrations
    npx prisma migrate dev
 
-5. Start the Application
-   npm run start
+   # (Optional) Seed the database
+   npx prisma db seed
+   ```
 
-The application will be accessible at http://localhost:3000.
-Talent500
+## 🚀 Running the Application
 
-🧪 Testing
+### Development Mode
 
-To run unit and integration tests:
-wanago.io
-+5
-GitHub
-+5
-Sling Academy
-+5
+```bash
+# Start the backend server
+npm run start:dev
 
+# The server will be running at http://localhost:3000
+```
+
+### Production Mode
+
+```bash
+# Build the application
+npm run build
+
+# Start the production server
+npm run start:prod
+```
+
+### Frontend Access
+
+Open your browser and navigate to:
+
+- **Login Page**: `http://localhost:3000/client/login.html`
+- **Register Page**: `http://localhost:3000/client/register.html`
+- **Chat Interface**: `http://localhost:3000/client/chat.html`
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+#### Register User
+
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "password": "securepassword"
+}
+```
+
+#### Login User
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "password": "securepassword"
+}
+```
+
+**Response:**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": 1
+}
+```
+
+### Chat Endpoints
+
+#### Get Messages (Protected)
+
+```http
+GET /chat/messages?userId=2
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "content": "Hello!",
+    "senderId": 1,
+    "receiverId": 2,
+    "createdAt": "2024-01-01T10:00:00.000Z",
+    "sender": {
+      "username": "johndoe"
+    }
+  }
+]
+```
+
+#### Get Users (Protected)
+
+```http
+GET /users
+Authorization: Bearer <access_token>
+```
+
+### WebSocket Events
+
+#### Connection
+
+```javascript
+const socket = io('http://localhost:3000', {
+  auth: { token: accessToken },
+  extraHeaders: { authorization: 'Bearer ' + accessToken },
+});
+```
+
+#### Join Room
+
+```javascript
+socket.emit('join', userId);
+```
+
+#### Send Message
+
+```javascript
+socket.emit('sendMessage', {
+  senderId: 1,
+  receiverId: 2,
+  content: 'Hello, World!',
+});
+```
+
+#### Receive Message
+
+```javascript
+socket.on('receiveMessage', (message) => {
+  console.log('New message:', message);
+});
+```
+
+## 🗂️ Project Structure
+
+```
+chatty/
+├── src/
+│   ├── app.controller.ts      # Main application controller
+│   ├── app.module.ts          # Root application module
+│   ├── app.service.ts         # Main application service
+│   ├── main.ts                # Application entry point
+│   ├── auth/                  # Authentication module
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   ├── jwt.strategy.ts
+│   │   └── dto/
+│   ├── chat/                  # Chat module
+│   │   ├── chat.controller.ts
+│   │   ├── chat.gateway.ts    # WebSocket gateway
+│   │   ├── chat.module.ts
+│   │   └── chat.service.ts
+│   ├── messages/              # Messages module
+│   ├── users/                 # Users module
+│   └── prisma.service.ts      # Prisma database service
+├── client/                    # Frontend files
+│   ├── login.html
+│   ├── register.html
+│   └── chat.html
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   └── migrations/            # Database migrations
+├── test/                      # Test files
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+## 🧪 Testing
+
+```bash
+# Run unit tests
 npm run test
 
-📄 API Documentation
+# Run tests in watch mode
+npm run test:watch
 
-API endpoints are documented and can be accessed via Swagger UI at:
+# Run test coverage
+npm run test:cov
 
-http://localhost:3000/api
+# Run e2e tests
+npm run test:e2e
+```
 
-🧑‍💻 Contributing
+## 📜 Scripts
 
-Contributions are welcome! Please fork the repository, create a new branch, and submit a pull request.
+- `npm run build` - Build the application
+- `npm run format` - Format code with Prettier
+- `npm run start` - Start production server
+- `npm run start:dev` - Start development server with hot reload
+- `npm run start:debug` - Start debug mode
+- `npm run start:prod` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run test` - Run Jest tests
 
-📄 License
+## 🔒 Security Features
 
-This project is licensed under the MIT License.
+- JWT token-based authentication
+- Password hashing with bcrypt
+- CORS configuration
+- Input validation with class-validator
+- WebSocket authentication middleware
 
-Feel free to customize this README further to match any additional features or configurations specific to your project.
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the UNLICENSED License.
+
+## 📞 Support
+
+If you have any questions or need help, please open an issue in the repository.
+
+## 🔄 Future Enhancements
+
+- [ ] Add user profile pictures
+- [ ] Implement group chat functionality
+- [ ] Add message encryption
+- [ ] Mobile app development
+- [ ] File sharing capabilities
+- [ ] Message reactions and replies
+- [ ] Online/offline status indicators
