@@ -10,11 +10,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     const { pathname } = new URL(request.url, `http://${request.headers.host}`);
     const method: string = request.method;
-    const negUrls = [
-      '/auth/forgot-password',
-      '/auth/login',
-      '/auth/reset-password',
-    ];
+    const negUrls = ['/auth/register', '/auth/login'];
 
     // ✅ Bypass guard for /auth/login (and optionally method)
     if (negUrls.includes(pathname) && method === 'POST') {
