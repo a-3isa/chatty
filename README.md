@@ -17,7 +17,7 @@ A modern real-time chat application built with NestJS backend and simple HTML fr
 
 - **Framework**: NestJS (Node.js)
 - **Language**: TypeScript
-- **Database**: PostgreSQL
+- **Database**: MongoDB
 - **ORM**: Prisma
 - **Authentication**: JWT + Passport
 - **Real-time**: Socket.IO
