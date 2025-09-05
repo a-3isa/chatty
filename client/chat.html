@@ -5,132 +5,350 @@
     <title>NestJS Chat</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: Arial, sans-serif;
+        font-family: 'Inter', sans-serif;
         margin: 0;
         height: 100vh;
         display: flex;
-        background: #f0f2f5;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       }
 
       .users-column {
-        width: 250px;
-        border-right: 1px solid #ddd;
-        background: white;
+        width: 280px;
+        border-right: 2px solid #e1e8ed;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
         overflow-y: auto;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .users-column h3 {
+        padding: 20px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 1px solid #e1e8ed;
+        margin-bottom: 10px;
       }
 
       .user {
-        padding: 12px 16px;
-        border-bottom: 1px solid #eee;
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f2f5;
         cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
       }
 
       .user:hover {
-        background: #e2e8f0;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        transform: translateX(5px);
       }
 
       .user.active {
-        background: #4a90e2;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
+        transform: translateX(5px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .user.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #fff;
+        border-radius: 0 2px 2px 0;
       }
 
       .chat-column {
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
+
+      .chat-header {
+        padding: 20px;
+        border-bottom: 1px solid #e1e8ed;
         background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .chat-header h2 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .chat-header .status {
+        font-size: 14px;
+        color: #666;
+        font-weight: 400;
       }
 
       #chat-box {
         flex: 1;
-        padding: 15px;
+        padding: 20px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
+        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
       }
 
       .chat-input {
         display: flex;
-        padding: 10px;
-        border-top: 1px solid #ddd;
+        padding: 20px;
+        border-top: 1px solid #e1e8ed;
+        background: white;
+        gap: 10px;
       }
 
       .chat-input input {
         flex: 1;
-        padding: 10px;
-        font-size: 14px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
+        padding: 15px 20px;
+        font-size: 16px;
+        border-radius: 25px;
+        border: 2px solid #e1e8ed;
         outline: none;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+
+      .chat-input input:focus {
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
 
       .chat-input button {
-        padding: 10px 20px;
-        margin-left: 8px;
+        padding: 15px 25px;
         border: none;
-        background: #4a90e2;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        border-radius: 8px;
+        border-radius: 25px;
         cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .chat-input button:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .chat-input button:active {
+        transform: translateY(0);
       }
 
       .message {
-        padding: 10px 14px;
-        border-radius: 18px;
-        max-width: 75%;
-        font-size: 14px;
+        padding: 12px 18px;
+        border-radius: 20px;
+        max-width: 70%;
+        font-size: 15px;
         line-height: 1.4;
         word-wrap: break-word;
+        animation: messageSlideIn 0.3s ease-out;
+        position: relative;
+      }
+
+      @keyframes messageSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .message.self {
-        background: #4a90e2;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         align-self: flex-end;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 5px;
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
       }
 
       .message.other {
-        background: #f0f0f0;
+        background: linear-gradient(135deg, #f0f2f5 0%, #e1e8ed 100%);
         color: #333;
         align-self: flex-start;
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .no-user-selected {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #666;
+        font-size: 18px;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .no-user-selected i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+      }
+
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
       }
     </style>
   </head>
   <body>
     <!-- Left Column: Users -->
-    <div class="users-column" id="users-list"></div>
+    <div class="users-column">
+      <h3>Contacts</h3>
+      <div id="users-list"></div>
+    </div>
 
     <!-- Right Column: Chat -->
     <div class="chat-column">
-      <div id="chat-box"></div>
+      <div class="chat-header">
+        <h2 id="chat-title">Select a conversation</h2>
+        <div class="status" id="chat-status">
+          Choose a user to start chatting
+        </div>
+      </div>
+      <div id="chat-box">
+        <div class="no-user-selected">
+          <div>
+            <div style="font-size: 48px; margin-bottom: 20px; opacity: 0.5">
+              💬
+            </div>
+            <div>Welcome to Chat App</div>
+            <div style="font-size: 14px; margin-top: 10px; color: #999">
+              Select a user from the sidebar to start a conversation
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="chat-input">
-        <input type="text" id="message-input" placeholder="Type a message..." />
-        <button id="send-btn">➤</button>
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Type your message..."
+        />
+        <button id="send-btn">Send</button>
       </div>
     </div>
 
     <script>
-      const accessToken = localStorage.getItem('authToken');
+      let accessToken = localStorage.getItem('authToken');
+      const refreshToken = localStorage.getItem('refreshToken');
       const userId = localStorage.getItem('userId');
       console.log(accessToken);
       console.log(userId);
       // sleep(20000);
 
-      if (!accessToken || !userId) {
+      if (!accessToken || !userId || !refreshToken) {
         window.location.href = 'login.html';
+      }
+
+      async function refreshAccessToken() {
+        try {
+          const res = await fetch('http://localhost:3000/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            accessToken = data.accessToken;
+            localStorage.setItem('authToken', accessToken);
+            reconnectSocket(); // Reconnect socket with new token
+            return accessToken;
+          } else {
+            throw new Error('Refresh failed');
+          }
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+          // Redirect to login if refresh fails
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userId');
+          window.location.href = 'login.html';
+          throw error;
+        }
+      }
+
+      async function authenticatedFetch(url, options = {}) {
+        options.headers = {
+          ...options.headers,
+          Authorization: 'Bearer ' + accessToken,
+        };
+        let res = await fetch(url, options);
+        if (res.status === 401) {
+          // Token expired, try refresh
+          await refreshAccessToken();
+          options.headers.Authorization = 'Bearer ' + accessToken;
+          res = await fetch(url, options);
+        }
+        return res;
       }
 
       let receiverId = null;
 
       // Socket connection
-      const socket = io('http://localhost:3000', {
+      let socket = io('http://localhost:3000', {
         auth: { token: accessToken },
         extraHeaders: { authorization: 'Bearer ' + accessToken },
       });
+
+      // Function to reconnect socket with new token
+      function reconnectSocket() {
+        socket.disconnect();
+        socket = io('http://localhost:3000', {
+          auth: { token: accessToken },
+          extraHeaders: { authorization: 'Bearer ' + accessToken },
+        });
+        // Re-attach event listeners if needed
+        socket.emit('join', userId);
+        socket.on('receiveMessage', (msg) => {
+          if (msg.senderId === receiverId || msg.receiverId === receiverId) {
+            addMessage(
+              msg.content,
+              msg.senderId === userId,
+              msg.sender?.username || 'User ' + msg.senderId,
+            );
+          }
+        });
+      }
 
       socket.emit('join', userId);
 
@@ -140,9 +358,7 @@
       const sendBtn = document.getElementById('send-btn');
 
       // Fetch users from API
-      fetch('http://localhost:3000/users', {
-        headers: { Authorization: 'Bearer ' + accessToken },
-      })
+      authenticatedFetch('http://localhost:3000/users')
         .then((res) => res.json())
         .then((users) => {
           users.forEach((u) => {
@@ -165,12 +381,17 @@
           .forEach((el) => el.classList.remove('active'));
         event.currentTarget.classList.add('active');
 
+        // Update chat header
+        document.getElementById('chat-title').textContent =
+          `Chat with ${u.username}`;
+        document.getElementById('chat-status').textContent = 'Online';
+
         chatBox.innerHTML = ''; // clear chat when switching users
 
         // Fetch past messages
-        fetch(`http://localhost:3000/chat/messages?userId=${receiverId}`, {
-          headers: { Authorization: 'Bearer ' + accessToken },
-        })
+        authenticatedFetch(
+          `http://localhost:3000/chat/messages?userId=${receiverId}`,
+        )
           .then((res) => res.json())
           .then((messages) => {
             // console.log('PPPPPP');

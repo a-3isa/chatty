@@ -4,57 +4,176 @@
     <meta charset="UTF-8" />
     <title>Login</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: Arial, sans-serif;
+        font-family: 'Inter', sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        background: #f4f4f4;
-      }
-      .card {
-        background: white;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        width: 300px;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
         text-align: center;
+        animation: slideUp 0.5s ease-out;
       }
-      input,
-      button {
-        width: 80%;
-        padding: 10px;
-        margin: 8px 0;
-        border-radius: 6px;
-        border: 1px solid #ccc;
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
+
+      h2 {
+        color: #333;
+        margin-bottom: 30px;
+        font-weight: 600;
+        font-size: 28px;
+      }
+
+      .input-group {
+        position: relative;
+        margin-bottom: 20px;
+      }
+
+      input {
+        width: 100%;
+        padding: 15px 20px;
+        border-radius: 12px;
+        border: 2px solid transparent;
+        background: rgba(255, 255, 255, 0.8);
+        font-size: 16px;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      input::placeholder {
+        color: #999;
+      }
+
       button {
-        background: #007bff;
-        color: white;
+        width: 100%;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 12px;
         border: none;
+        font-size: 16px;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
       }
-      button:hover {
-        background: #0056b3;
+
+      button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
       }
+
+      button:hover::before {
+        left: 100%;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      button[type='submit'] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      button[type='submit']:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
       .link-btn {
-        background: #28a745;
+        background: transparent;
+        color: #667eea;
+        border: 2px solid #667eea;
       }
+
       .link-btn:hover {
-        background: #1e7e34;
+        background: #667eea;
+        color: white;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+      }
+
+      #login-message {
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        min-height: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
       }
     </style>
   </head>
   <body>
     <div class="card">
       <h2>Login</h2>
-      <input type="text" id="login-username" placeholder="Username" />
-      <input type="password" id="login-password" placeholder="Password" />
-      <button onclick="login()">Login</button>
+      <div class="input-group">
+        <input type="text" id="login-username" placeholder="Username" />
+      </div>
+      <div class="input-group">
+        <input type="password" id="login-password" placeholder="Password" />
+      </div>
+      <button type="submit" onclick="login()">Login</button>
       <p id="login-message"></p>
       <button class="link-btn" onclick="window.location.href='register.html'">
-        Go to Register
+        Don't have an account? Register
       </button>
     </div>
 
@@ -70,24 +189,20 @@
         });
 
         const data = await res.json();
-        document.getElementById('login-message').textContent =
-          JSON.stringify(data);
+        const messageEl = document.getElementById('login-message');
 
-        // console.log(res);
-        // console.log(data);
-
-        // If login success, save token
         if (res.ok && data.accessToken) {
-          // console.log('sadasd');
-          // console.log(data.accessToken);
-          // console.log(data.userId);
           localStorage.setItem('authToken', data.accessToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
           localStorage.setItem('userId', data.userId);
-          document.getElementById('login-message').textContent =
-            '✅ Login successful!';
+          messageEl.textContent = '✅ Login successful!';
+          messageEl.className = 'success';
           setTimeout(() => {
             window.location.href = 'chat.html';
           }, 200);
+        } else {
+          messageEl.textContent = data.message || 'Login failed';
+          messageEl.className = 'error';
         }
       }
     </script>
