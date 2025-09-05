@@ -7,7 +7,7 @@ A modern real-time chat application built with NestJS backend and simple HTML fr
 - **Real-time Messaging**: Instant message delivery using WebSockets with Socket.IO
 - **User Authentication**: Secure JWT-based authentication with Passport
 - **User Management**: Registration and login system
-- **Persistent Messages**: All messages stored in PostgreSQL database with Prisma ORM
+- **Persistent Messages**: All messages stored in MongoDB database with Prisma ORM
 - **Simple UI**: Clean, responsive HTML interface
 - **Cross-platform**: Works on desktop and mobile browsers
 
@@ -44,7 +44,7 @@ Before running this application, make sure you have the following installed:
 
 - Node.js (v16 or higher)
 - npm or yarn
-- PostgreSQL database
+- MongoDB database
 - Git
 
 ## 🔧 Installation
@@ -66,7 +66,7 @@ Before running this application, make sure you have the following installed:
    Create a `.env` file in the root directory:
 
    ```env
-   DATABASE_URL="postgresql://username:password@localhost:5432/chatty_db"
+   DATABASE_URL="DATABASE_URL"
    JWT_SECRET="your-super-secret-jwt-key"
    PORT=3000
    ```
