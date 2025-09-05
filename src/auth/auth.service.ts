@@ -36,7 +36,7 @@ export class AuthService {
 
   async login(
     userDto: UserAuthDto,
-  ): Promise<{ userId: number; accessToken: string; refreshToken: string }> {
+  ): Promise<{ userId: string; accessToken: string; refreshToken: string }> {
     const { username, password } = userDto;
 
     const user = await this.prisma.user.findUnique({

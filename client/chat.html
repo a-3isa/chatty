@@ -115,7 +115,10 @@
 
     <script>
       const accessToken = localStorage.getItem('authToken');
-      const userId = Number(localStorage.getItem('userId'));
+      const userId = localStorage.getItem('userId');
+      console.log(accessToken);
+      console.log(userId);
+      // sleep(20000);
 
       if (!accessToken || !userId) {
         window.location.href = 'login.html';

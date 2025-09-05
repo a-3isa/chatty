@@ -6,8 +6,8 @@ export class ChatService {
   constructor(private prisma: PrismaService) {}
 
   async createMessage(data: {
-    senderId: number;
-    receiverId: number;
+    senderId: string;
+    receiverId: string;
     content: string;
   }) {
     return this.prisma.message.create({
@@ -16,7 +16,7 @@ export class ChatService {
     });
   }
 
-  async getMessages(senderId: number, receiverId: number) {
+  async getMessages(senderId: string, receiverId: string) {
     return this.prisma.message.findMany({
       where: {
         OR: [

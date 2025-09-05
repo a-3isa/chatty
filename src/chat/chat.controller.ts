@@ -27,10 +27,7 @@ export class ChatController {
   ) {
     const currentUserId = req.user.id; // from JWT
     console.log(currentUserId);
-    const messages = await this.chatService.getMessages(
-      currentUserId,
-      Number(userId),
-    );
+    const messages = await this.chatService.getMessages(currentUserId, userId);
     console.log(messages);
     return messages;
   }

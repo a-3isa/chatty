@@ -69,7 +69,7 @@ export class ChatGateway {
   @SubscribeMessage('sendMessage')
   async handleMessage(
     client: Socket,
-    payload: { senderId: number; receiverId: number; content: string },
+    payload: { senderId: string; receiverId: string; content: string },
     // @GetUser() user: User,
   ) {
     // console.log(payload);

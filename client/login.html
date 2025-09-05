@@ -73,19 +73,21 @@
         document.getElementById('login-message').textContent =
           JSON.stringify(data);
 
-        console.log(res);
-        console.log(data);
+        // console.log(res);
+        // console.log(data);
 
         // If login success, save token
         if (res.ok && data.accessToken) {
-          console.log('sadasd');
+          // console.log('sadasd');
+          // console.log(data.accessToken);
+          // console.log(data.userId);
           localStorage.setItem('authToken', data.accessToken);
           localStorage.setItem('userId', data.userId);
           document.getElementById('login-message').textContent =
             '✅ Login successful!';
           setTimeout(() => {
             window.location.href = 'chat.html';
-          }, 500);
+          }, 200);
         }
       }
     </script>

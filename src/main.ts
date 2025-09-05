@@ -30,7 +30,14 @@ async function bootstrap() {
     origin:
       process.env.NODE_ENV === 'production'
         ? process.env.ALLOWED_ORIGINS?.split(',') || ['https://yourdomain.com']
-        : ['http://localhost:3000', 'http://localhost:3001'],
+        : [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:8080',
+            'http://127.0.0.1:60113',
+            'http://127.0.0.1:60153',
+            'http://127.0.0.1:53122',
+          ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204

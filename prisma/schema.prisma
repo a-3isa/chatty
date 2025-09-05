@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql" // or "mysql" or "sqlite"
+  provider = "mongodb" // or "mysql" or "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -8,7 +8,8 @@ generator client {
 }
 
 model User {
-  id                  Int       @id @default(autoincrement())
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  // id                  Int       @id @default(autoincrement())
   username            String    @unique
   password            String
   resetToken          String?
@@ -18,28 +19,14 @@ model User {
 
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
-
-  friendships1 Friendship[] @relation("FriendshipUser1")
-  friendships2 Friendship[] @relation("FriendshipUser2")
 }
 
 model Message {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   content    String
-  senderId   Int
-  receiverId Int
+  senderId   String   @db.ObjectId
+  receiverId String   @db.ObjectId
   sender     User     @relation("SentMessages", fields: [senderId], references: [id])
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   createdAt  DateTime @default(now())
-}
-
-model Friendship {
-  id        Int      @id @default(autoincrement())
-  user1Id   Int
-  user2Id   Int
-  user1     User     @relation("FriendshipUser1", fields: [user1Id], references: [id])
-  user2     User     @relation("FriendshipUser2", fields: [user2Id], references: [id])
-  createdAt DateTime @default(now())
-
-  @@unique([user1Id, user2Id]) // Prevent duplicate friendships
 }
