@@ -283,11 +283,21 @@ npm run test:e2e
 
 ## 🔒 Security Features
 
-- JWT token-based authentication
-- Password hashing with bcrypt
-- CORS configuration
-- Input validation with class-validator
-- WebSocket authentication middleware
+For comprehensive security documentation, see [SECURITY.md](./SECURITY.md)
+
+### Core Security Features
+
+- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **Password Security**: bcrypt hashing with strength validation
+- **Account Lockout**: Automatic lockout after failed login attempts
+- **Input Sanitization**: Global middleware preventing XSS and injection attacks
+- **CSRF Protection**: JWT-based CSRF protection for HTML clients
+- **Security Headers**: Helmet middleware with comprehensive HTTP security headers
+- **CORS Configuration**: Environment-specific CORS policies
+- **Rate Limiting**: Global throttling to prevent abuse
+- **Password Reset**: Secure token-based password reset flow
+- **Input Validation**: class-validator with comprehensive DTO validation
+- **WebSocket Security**: Authentication middleware for real-time connections
 
 ## 🤝 Contributing
 

@@ -8,9 +8,13 @@ generator client {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
-  password String
+  id                  Int       @id @default(autoincrement())
+  username            String    @unique
+  password            String
+  resetToken          String?
+  resetTokenExpiry    DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockoutExpiry       DateTime?
 
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")

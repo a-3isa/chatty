@@ -25,75 +25,172 @@ export class AuthService {
     });
 
     const payload = { username };
-    const accessToken: string = this.jwtService.sign(payload);
-    return { accessToken };
+    const accessToken: string = this.jwtService.sign(payload, {
+      expiresIn: '15m',
+    });
+    const refreshToken: string = this.jwtService.sign(payload, {
+      expiresIn: '7d',
+    });
+    return { accessToken, refreshToken };
   }
 
   async login(
     userDto: UserAuthDto,
-  ): Promise<{ userId: number; accessToken: string }> {
+  ): Promise<{ userId: number; accessToken: string; refreshToken: string }> {
     const { username, password } = userDto;
 
     const user = await this.prisma.user.findUnique({
       where: { username },
     });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // console.log(password, user.password);
-      const payload = { username };
-      const accessToken: string = this.jwtService.sign(payload);
-      return { userId: user.id, accessToken };
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
     }
-    throw new UnauthorizedException();
+
+    // Check if account is locked
+    if (user.lockoutExpiry && user.lockoutExpiry > new Date()) {
+      throw new UnauthorizedException(
+        'Account is temporarily locked due to too many failed login attempts',
+      );
+    }
+
+    if (await bcrypt.compare(password, user.password)) {
+      // Reset failed attempts on successful login
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 0,
+          lockoutExpiry: null,
+        },
+      });
+
+      const payload = { username };
+      const accessToken: string = this.jwtService.sign(payload, {
+        expiresIn: '15m',
+      });
+      const refreshToken: string = this.jwtService.sign(payload, {
+        expiresIn: '7d',
+      });
+      return { userId: user.id, accessToken, refreshToken };
+    } else {
+      // Increment failed attempts
+      const newFailedAttempts = user.failedLoginAttempts + 1;
+      const lockoutThreshold = 5; // Lock after 5 failed attempts
+      const lockoutDuration = 15 * 60 * 1000; // 15 minutes
+
+      if (newFailedAttempts >= lockoutThreshold) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: newFailedAttempts,
+            lockoutExpiry: new Date(Date.now() + lockoutDuration),
+          },
+        });
+        throw new UnauthorizedException(
+          'Account locked due to too many failed login attempts',
+        );
+      } else {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginAttempts: newFailedAttempts },
+        });
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    }
   }
 
-  // async requestPasswordReset(email: string) {
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { username },
-  //   });
-  //   if (!user) throw new NotFoundException('User not found');
+  refreshToken(refreshToken: string): { accessToken: string } {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+      const newAccessToken = this.jwtService.sign(
+        { username: payload.username },
+        { expiresIn: '15m' },
+      );
+      return { accessToken: newAccessToken };
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
 
-  //   const token = this.jwtService.sign(
-  //     { username: user.username },
-  //     { secret: process.env.JWT_SECRET, expiresIn: '15m' },
-  //   );
-  //   user.resetToken = token;
-  //   user.resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
-  //   await this.prisma.user.save(user);
-  //   const url = `http://localhost:3000/auth/reset-password?token=${token}`;
+  async requestPasswordReset(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
 
-  //   return { message: 'Password reset link sent to your email' };
-  // }
+    const token = this.jwtService.sign(
+      { username: user.username },
+      { expiresIn: '15m' },
+    );
 
-  // async resetPassword(token: string, newPassword: string) {
-  //   try {
-  //     const payload = this.jwtService.verify(token, {
-  //       secret: process.env.JWT_SECRET,
-  //     });
-  //     const email = payload.email;
-  //     const user = await this.prisma.user.findUnique({
-  //       where: { email, resetToken: token },
-  //     });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: token,
+        resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
 
-  //     if (
-  //       !user ||
-  //       !user.resetTokenExpiry ||
-  //       user.resetTokenExpiry < new Date()
-  //     ) {
-  //       throw new UnauthorizedException('Invalid or expired token');
-  //     }
-  //     console.log(user.password);
-  //     console.log(newPassword);
-  //     user.password = await bcrypt.hash(newPassword, 10);
-  //     console.log(user.password);
-  //     user.resetToken = null;
-  //     user.resetTokenExpiry = null;
-  //     const suc = await this.prisma.user.save(user);
-  //     console.log(suc);
+    const url = `http://localhost:3000/auth/reset-password?token=${token}`;
+    // In a real application, you would send this URL via email
+    console.log(`Password reset URL: ${url}`);
 
-  //     return { message: 'Password reset successfully' };
-  //   } catch (err) {
-  //     throw new UnauthorizedException(err);
-  //   }
-  // }
+    return { message: 'Password reset link sent to your email' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      const username = payload.username;
+      const user = await this.prisma.user.findFirst({
+        where: {
+          username,
+          resetToken: token,
+        },
+      });
+
+      if (
+        !user ||
+        !user.resetTokenExpiry ||
+        user.resetTokenExpiry < new Date()
+      ) {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      });
+
+      return { message: 'Password reset successfully' };
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  async unlockAccount(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockoutExpiry: null,
+      },
+    });
+
+    return { message: 'Account unlocked successfully' };
+  }
 }
