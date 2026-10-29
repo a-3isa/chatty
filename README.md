@@ -1,326 +1,99 @@
-# Chatty - Real-Time Chat Application
+# Chatty
 
-A modern real-time chat application built with NestJS backend and simple HTML frontend, featuring user authentication, WebSocket-based messaging, and persistent message storage.
+A real-time one-to-one chat application: a NestJS backend with Socket.IO, JWT authentication and MongoDB (via Prisma), plus a plain HTML/JS client.
 
-## 🚀 Features
+## Features
 
-- **Real-time Messaging**: Instant message delivery using WebSockets with Socket.IO
-- **User Authentication**: Secure JWT-based authentication with Passport
-- **User Management**: Registration and login system
-- **Persistent Messages**: All messages stored in MongoDB database with Prisma ORM
-- **Simple UI**: Clean, responsive HTML interface
-- **Cross-platform**: Works on desktop and mobile browsers
+- Real-time messaging over WebSockets (Socket.IO)
+- JWT authentication (Passport) with bcrypt-hashed passwords
+- Registration and login
+- Persistent message history in MongoDB through Prisma
+- Simple static HTML client served by the backend
+- Security middleware: Helmet, rate limiting, input validation. See [SECURITY.md](./SECURITY.md).
 
-## 🛠️ Technology Stack
+## Tech stack
 
-### Backend
+NestJS, TypeScript, MongoDB, Prisma, Socket.IO, Passport/JWT, class-validator, bcrypt, Jest, ESLint, Prettier. Client: HTML, CSS, vanilla JavaScript.
 
-- **Framework**: NestJS (Node.js)
-- **Language**: TypeScript
-- **Database**: MongoDB
-- **ORM**: Prisma
-- **Authentication**: JWT + Passport
-- **Real-time**: Socket.IO
-- **Validation**: class-validator + class-transformer
-- **Password Hashing**: bcrypt
+## Getting started
 
-### Frontend
-
-- **HTML5**: Semantic markup
-- **CSS3**: Custom styling
-- **JavaScript**: ES6+ features
-- **WebSockets**: Socket.IO client
-
-### Development Tools
-
-- **Linting**: ESLint
-- **Code Formatting**: Prettier
-- **Testing**: Jest
-- **Build Tool**: NestJS CLI
-
-## 📋 Prerequisites
-
-Before running this application, make sure you have the following installed:
-
-- Node.js (v16 or higher)
-- npm or yarn
-- MongoDB database
-- Git
-
-## 🔧 Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/a-3isa/chatty
-   cd chatty
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Environment Setup**
-   Create a `.env` file in the root directory:
-
-   ```env
-   DATABASE_URL="DATABASE_URL"
-   JWT_SECRET="your-super-secret-jwt-key"
-   PORT=3000
-   ```
-
-4. **Database Setup**
-
-   ```bash
-   # Generate Prisma client
-   npx prisma generate
-
-   # Run database migrations
-   npx prisma migrate dev
-
-   # (Optional) Seed the database
-   npx prisma db seed
-   ```
-
-## 🚀 Running the Application
-
-### Development Mode
+Prerequisites: Node.js 18+, npm, and a MongoDB deployment **running as a replica set** (Prisma requires this for MongoDB). A free MongoDB Atlas cluster works out of the box; locally, start `mongod` with `--replSet rs0` and run `rs.initiate()` once.
 
 ```bash
-# Start the backend server
-npm run start:dev
-
-# The server will be running at http://localhost:3000
+git clone https://github.com/a-3isa/chatty
+cd chatty
+npm install
 ```
 
-### Production Mode
+Create `.env`:
+
+```env
+# Atlas example; for a local replica set use mongodb://localhost:27017/chatty?replicaSet=rs0
+DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>/chatty"
+JWT_SECRET="change-me"
+PORT=3000
+```
+
+Generate the client and sync the schema (Prisma migrations are not supported on MongoDB; use `db push`):
 
 ```bash
-# Build the application
-npm run build
-
-# Start the production server
-npm run start:prod
+npx prisma generate
+npx prisma db push
 ```
 
-### Frontend Access
+Run:
 
-Open your browser and navigate to:
-
-- **Login Page**: `http://localhost:3000/client/login.html`
-- **Register Page**: `http://localhost:3000/client/register.html`
-- **Chat Interface**: `http://localhost:3000/client/chat.html`
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### Register User
-
-```http
-POST /auth/register
-Content-Type: application/json
-
-{
-  "username": "johndoe",
-  "password": "securepassword"
-}
+```bash
+npm run start:dev                      # development
+npm run build && npm run start:prod    # production
 ```
 
-#### Login User
+Open `http://localhost:3000/client/register.html` to create two users, then use `login.html` and `chat.html` in two browsers to chat.
 
-```http
-POST /auth/login
-Content-Type: application/json
+## API
 
-{
-  "username": "johndoe",
-  "password": "securepassword"
-}
-```
+**Auth**
+- `POST /auth/register` with `{ "username", "password" }`
+- `POST /auth/login` returns `{ "accessToken", "userId" }`
 
-**Response:**
+**Protected (send `Authorization: Bearer <token>`)**
+- `GET /users` list users
+- `GET /chat/messages?userId=<id>` conversation with a user
 
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "userId": 1
-}
-```
-
-### Chat Endpoints
-
-#### Get Messages (Protected)
-
-```http
-GET /chat/messages?userId=2
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-
-```json
-[
-  {
-    "id": 1,
-    "content": "Hello!",
-    "senderId": 1,
-    "receiverId": 2,
-    "createdAt": "2024-01-01T10:00:00.000Z",
-    "sender": {
-      "username": "johndoe"
-    }
-  }
-]
-```
-
-#### Get Users (Protected)
-
-```http
-GET /users
-Authorization: Bearer <access_token>
-```
-
-### WebSocket Events
-
-#### Connection
+**WebSocket events**
 
 ```javascript
-const socket = io('http://localhost:3000', {
-  auth: { token: accessToken },
-  extraHeaders: { authorization: 'Bearer ' + accessToken },
-});
-```
-
-#### Join Room
-
-```javascript
+const socket = io('http://localhost:3000', { auth: { token: accessToken } });
 socket.emit('join', userId);
+socket.emit('sendMessage', { senderId, receiverId, content });
+socket.on('receiveMessage', (message) => { /* render */ });
 ```
 
-#### Send Message
-
-```javascript
-socket.emit('sendMessage', {
-  senderId: 1,
-  receiverId: 2,
-  content: 'Hello, World!',
-});
-```
-
-#### Receive Message
-
-```javascript
-socket.on('receiveMessage', (message) => {
-  console.log('New message:', message);
-});
-```
-
-## 🗂️ Project Structure
+## Structure
 
 ```
-chatty/
-├── src/
-│   ├── app.controller.ts      # Main application controller
-│   ├── app.module.ts          # Root application module
-│   ├── app.service.ts         # Main application service
-│   ├── main.ts                # Application entry point
-│   ├── auth/                  # Authentication module
-│   │   ├── auth.controller.ts
-│   │   ├── auth.module.ts
-│   │   ├── auth.service.ts
-│   │   ├── jwt.strategy.ts
-│   │   └── dto/
-│   ├── chat/                  # Chat module
-│   │   ├── chat.controller.ts
-│   │   ├── chat.gateway.ts    # WebSocket gateway
-│   │   ├── chat.module.ts
-│   │   └── chat.service.ts
-│   ├── messages/              # Messages module
-│   ├── users/                 # Users module
-│   └── prisma.service.ts      # Prisma database service
-├── client/                    # Frontend files
-│   ├── login.html
-│   ├── register.html
-│   └── chat.html
-├── prisma/
-│   ├── schema.prisma          # Database schema
-│   └── migrations/            # Database migrations
-├── test/                      # Test files
-├── package.json
-├── tsconfig.json
-└── README.md
+src/
+  auth/       registration, login, JWT strategy
+  chat/       REST controller and WebSocket gateway
+  messages/   message persistence
+  users/      user lookup
+  prisma.service.ts
+client/       login.html, register.html, chat.html
+prisma/       schema.prisma
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
-# Run unit tests
 npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run test coverage
-npm run test:cov
-
-# Run e2e tests
 npm run test:e2e
+npm run test:cov
 ```
 
-## 📜 Scripts
+## Roadmap
 
-- `npm run build` - Build the application
-- `npm run format` - Format code with Prettier
-- `npm run start` - Start production server
-- `npm run start:dev` - Start development server with hot reload
-- `npm run start:debug` - Start debug mode
-- `npm run start:prod` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run test` - Run Jest tests
+Group chats, online/offline presence, file sharing, message reactions.
 
-## 🔒 Security Features
+## License
 
-For comprehensive security documentation, see [SECURITY.md](./SECURITY.md)
-
-### Core Security Features
-
-- **JWT Authentication**: Secure token-based authentication with refresh tokens
-- **Password Security**: bcrypt hashing with strength validation
-- **Account Lockout**: Automatic lockout after failed login attempts
-- **Input Sanitization**: Global middleware preventing XSS and injection attacks
-- **CSRF Protection**: JWT-based CSRF protection for HTML clients
-- **Security Headers**: Helmet middleware with comprehensive HTTP security headers
-- **CORS Configuration**: Environment-specific CORS policies
-- **Rate Limiting**: Global throttling to prevent abuse
-- **Password Reset**: Secure token-based password reset flow
-- **Input Validation**: class-validator with comprehensive DTO validation
-- **WebSocket Security**: Authentication middleware for real-time connections
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the UNLICENSED License.
-
-## 📞 Support
-
-If you have any questions or need help, please open an issue in the repository.
-
-## 🔄 Future Enhancements
-
-- [ ] Add user profile pictures
-- [ ] Implement group chat functionality
-- [ ] Add message encryption
-- [ ] Mobile app development
-- [ ] File sharing capabilities
-- [ ] Message reactions and replies
-- [ ] Online/offline status indicators
+UNLICENSED.
