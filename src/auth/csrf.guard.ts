@@ -17,9 +17,9 @@ export class CsrfGuard implements CanActivate {
       return true;
     }
 
+    const body = request.body as { _csrf?: string } | undefined;
     const csrfToken =
-      (request.headers['x-csrf-token'] as string) ||
-      (request.body as any)?._csrf;
+      (request.headers['x-csrf-token'] as string | undefined) || body?._csrf;
     const jwtToken = request.headers.authorization?.replace('Bearer ', '');
 
     if (!csrfToken || !jwtToken) {
