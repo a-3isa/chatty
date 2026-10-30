@@ -1,5 +1,8 @@
 # Chatty
 
+[![CI](https://github.com/a-3isa/chatty/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/a-3isa/chatty/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)
+
 A real-time one-to-one chat API: NestJS with Socket.IO, Prisma on MongoDB, JWT access and refresh tokens, and account lockout, plus a small HTML and JavaScript client.
 
 ## Overview
