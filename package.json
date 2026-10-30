@@ -1,18 +1,31 @@
 {
   "name": "chatty",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Real-time one-to-one chat API: NestJS, Socket.IO and Prisma on MongoDB, with JWT access and refresh tokens and account lockout",
+  "author": "Ahmed Ibrahim Hussien (https://github.com/a-3isa)",
   "private": true,
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a-3isa/chatty.git"
+  },
+  "homepage": "https://github.com/a-3isa/chatty#readme",
+  "bugs": {
+    "url": "https://github.com/a-3isa/chatty/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
