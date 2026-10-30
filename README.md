@@ -1,99 +1,136 @@
 # Chatty
 
-A real-time one-to-one chat application: a NestJS backend with Socket.IO, JWT authentication and MongoDB (via Prisma), plus a plain HTML/JS client.
+[![CI](https://github.com/a-3isa/chatty/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/a-3isa/chatty/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)
+
+A real-time one-to-one chat API: NestJS with Socket.IO, Prisma on MongoDB, JWT access and refresh tokens, and account lockout, plus a small HTML and JavaScript client.
+
+## Overview
+
+Users register and log in over HTTP and get a short-lived access token and a longer-lived refresh token. The client opens a Socket.IO connection with the access token, joins the user's own room, and sends messages over the socket. The server stores each message in MongoDB and delivers it to the receiver's room. Past conversations come from an HTTP endpoint.
 
 ## Features
 
-- Real-time messaging over WebSockets (Socket.IO)
-- JWT authentication (Passport) with bcrypt-hashed passwords
-- Registration and login
-- Persistent message history in MongoDB through Prisma
-- Simple static HTML client served by the backend
-- Security middleware: Helmet, rate limiting, input validation. See [SECURITY.md](./SECURITY.md).
+- **Accounts:** registration and login with bcrypt-hashed passwords; five wrong passwords lock the account for 15 minutes.
+- **Tokens:** 15-minute access tokens and 7-day refresh tokens, each typed so one cannot stand in for the other.
+- **Real-time messaging:** Socket.IO with token authentication; the sender is always the socket's own user, and each user receives only their own room's messages.
+- **History:** `GET /chat/messages?userId=` returns the conversation with another user, oldest first.
+- **Protection:** validation that rejects unknown fields, a rate limit of 10 HTTP requests a minute per client, and only id and username exposed for other users.
+- **Client:** plain HTML pages for register, login and chat (`client/`).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    client[HTML client] -->|HTTP + JWT| api
+    client <-->|Socket.IO + JWT| api
+    subgraph api[NestJS API]
+        direction TB
+        auth[Auth: register, login,<br/>refresh, lockout] --- chat[Chat gateway<br/>and history]
+        chat --- users[Users]
+    end
+    api -->|Prisma| db[(MongoDB<br/>replica set)]
+```
 
 ## Tech stack
 
-NestJS, TypeScript, MongoDB, Prisma, Socket.IO, Passport/JWT, class-validator, bcrypt, Jest, ESLint, Prettier. Client: HTML, CSS, vanilla JavaScript.
+NestJS 11, TypeScript, Socket.IO, Prisma 6 with MongoDB, Passport JWT, bcrypt, class-validator, `@nestjs/throttler`, Jest, ESLint and Prettier. Client: HTML, CSS and JavaScript, with the Socket.IO client from its CDN.
 
 ## Getting started
 
-Prerequisites: Node.js 18+, npm, and a MongoDB deployment **running as a replica set** (Prisma requires this for MongoDB). A free MongoDB Atlas cluster works out of the box; locally, start `mongod` with `--replSet rs0` and run `rs.initiate()` once.
+You need Node.js 20 or later (`.nvmrc` pins 22) and MongoDB running as a replica set, which Prisma requires. A MongoDB Atlas cluster works; locally, a single-node replica set in Docker does:
+
+```bash
+docker run -d --name chatty-mongo -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+docker exec chatty-mongo mongosh --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+```
+
+Then:
 
 ```bash
 git clone https://github.com/a-3isa/chatty
 cd chatty
-npm install
-```
-
-Create `.env`:
-
-```env
-# Atlas example; for a local replica set use mongodb://localhost:27017/chatty?replicaSet=rs0
-DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>/chatty"
-JWT_SECRET="change-me"
-PORT=3000
-```
-
-Generate the client and sync the schema (Prisma migrations are not supported on MongoDB; use `db push`):
-
-```bash
+npm ci
+cp .env.example .env                  # then fill in the values
 npx prisma generate
-npx prisma db push
+npx prisma db push                    # creates the indexes; MongoDB has no Prisma migrations
+npm run start:dev                     # http://localhost:3000
 ```
 
-Run:
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | yes | MongoDB connection string for a replica set |
+| `JWT_SECRET` | yes | Signs every token; the app will not start without it |
+| `PORT` | no (3000) | HTTP and Socket.IO port |
+| `NODE_ENV`, `ALLOWED_ORIGINS` | in production | With `NODE_ENV=production`, the comma-separated origins allowed to call the HTTP API |
+
+**Client.** The pages call `http://localhost:3000`, and in development the API accepts requests from `http://localhost:3001`. Serve the folder there and open the login page in two browsers:
 
 ```bash
-npm run start:dev                      # development
-npm run build && npm run start:prod    # production
+npx http-server client -p 3001        # then open http://localhost:3001/register.html
 ```
 
-Open `http://localhost:3000/client/register.html` to create two users, then use `login.html` and `chat.html` in two browsers to chat.
+For a production build: `npm run build`, then `npm run start:prod`.
 
 ## API
 
-**Auth**
-- `POST /auth/register` with `{ "username", "password" }`
-- `POST /auth/login` returns `{ "accessToken", "userId" }`
+HTTP routes need `Authorization: Bearer <access token>`, except register and login.
 
-**Protected (send `Authorization: Bearer <token>`)**
-- `GET /users` list users
-- `GET /chat/messages?userId=<id>` conversation with a user
+| Route | Purpose |
+|---|---|
+| `POST /auth/register` `{ username, password }` | Create an account; returns access and refresh tokens |
+| `POST /auth/login` `{ username, password }` | Returns `{ userId, accessToken, refreshToken }` |
+| `POST /auth/refresh` `{ refreshToken }` | Returns a new access token |
+| `POST /auth/forgot-password` `{ username }` | Creates a reset token (logged on the server; no email is sent) |
+| `POST /auth/reset-password?token=` `{ password }` | Sets a new password with a reset token |
+| `POST /auth/unlock-account` `{ username }` | Clears the lockout of the caller's own account |
+| `GET /users` | Every user's id and username |
+| `GET /chat/messages?userId=` | The conversation with that user |
 
-**WebSocket events**
+Socket.IO (connect with `auth: { token: <access token> }`):
 
-```javascript
-const socket = io('http://localhost:3000', { auth: { token: accessToken } });
-socket.emit('join', userId);
-socket.emit('sendMessage', { senderId, receiverId, content });
-socket.on('receiveMessage', (message) => { /* render */ });
-```
+| Event | Payload | Effect |
+|---|---|---|
+| `join` | your own user id | Join your room to receive messages |
+| `sendMessage` | `{ receiverId, content }` | Store the message and emit `receiveMessage` to the receiver's room |
 
-## Structure
+## Project structure
 
 ```
 src/
-  auth/       registration, login, JWT strategy
-  chat/       REST controller and WebSocket gateway
-  messages/   message persistence
-  users/      user lookup
-  prisma.service.ts
-client/       login.html, register.html, chat.html
-prisma/       schema.prisma
+  auth/        register, login, refresh, reset, lockout, JWT strategy and guard
+  chat/        Socket.IO gateway, message history
+  users/       user list
+  middleware/  request sanitisation (not enabled)
+prisma/        schema (User, Message)
+client/        register, login and chat pages
 ```
 
-## Testing
+## Testing and checks
 
 ```bash
-npm run test
-npm run test:e2e
-npm run test:cov
+npm test               # unit tests (Jest)
+npm run lint           # ESLint, no fixes applied
+npm run format:check   # Prettier
+npm run build
 ```
 
-## Roadmap
+The unit tests cover token types, the socket rules, account unlocking and the public user fields. `test/app.e2e-spec.ts` is still the NestJS starter test (it expects `GET /` to return "Hello World!" without a token), so `npm run test:e2e` does not pass. CI runs lint, format check, build and unit tests on every pull request and on pushes to `master`.
 
-Group chats, online/offline presence, file sharing, message reactions.
+## Security notes
 
-## License
+See [SECURITY.md](SECURITY.md) for what the code does today, what is not active yet, and how to report a vulnerability.
 
-UNLICENSED.
+## Known issues and roadmap
+
+These are bugs in the current code, recorded here rather than hidden:
+
+- **Refresh and password reset need an access token.** The global JWT guard only exempts register and login, so `/auth/refresh` fails once the access token has expired, and `forgot-password` and `reset-password` work only for a signed-in user.
+- `forgot-password` says a link was emailed, but it only logs it on the server, and it reveals whether a username exists.
+- Helmet, the sanitisation middleware and the CSRF guard are in the code but not enabled; the Socket.IO server accepts any origin.
+- The client keeps tokens in `localStorage`.
+- Planned: real end-to-end tests, and Prisma 7.
+
+## License and author
+
+UNLICENSED: the source is public for portfolio review, and no licence is granted to reuse it. Built by Ahmed Ibrahim Hussien ([a-3isa](https://github.com/a-3isa)).

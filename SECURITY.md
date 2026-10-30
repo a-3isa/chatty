@@ -1,203 +1,44 @@
-# Security Documentation
+# Security policy
 
-This document outlines the security features and best practices implemented in the Chatty application.
+## Supported versions
 
-## 🔐 Authentication & Authorization
+Only the `master` branch is maintained. Fixes are not backported.
 
-### JWT Token-Based Authentication
+## Reporting a vulnerability
 
-- **Access Tokens**: Short-lived (15 minutes) JWT tokens for API access
-- **Refresh Tokens**: Long-lived (7 days) tokens for seamless token renewal
-- **Secure Storage**: Tokens are stored in memory/client-side storage (not localStorage for security)
-- **Automatic Renewal**: Access tokens are automatically renewed using refresh tokens
+Please report vulnerabilities privately through GitHub:
+**Security → Report a vulnerability** on this repository
+([direct link](https://github.com/a-3isa/chatty/security/advisories/new)).
 
-### Password Security
+Please do not open a public issue for a security problem.
 
-- **Hashing**: Passwords are hashed using bcrypt with salt rounds
-- **Strength Validation**: Minimum 8 characters, must contain uppercase, lowercase, numbers, and special characters
-- **No Plain Text Storage**: Passwords are never stored in plain text
+Include what you can of:
+- the HTTP route, socket event or file affected;
+- steps to reproduce, or a proof of concept;
+- the impact you expect.
 
-## 🛡️ Security Features
+I aim to acknowledge reports within a week. Once an issue is confirmed, a fix is
+prepared on a private branch and you are credited in the advisory unless you prefer not to be.
 
-### Account Lockout Mechanism
+## What the code does today
 
-- **Failed Attempt Tracking**: Tracks consecutive failed login attempts per user
-- **Automatic Lockout**: Account locked after 5 consecutive failed attempts
-- **Lockout Duration**: 15-minute lockout period to prevent brute force attacks
-- **Manual Unlock**: Administrative endpoint to unlock accounts
-- **Reset on Success**: Failed attempt counter resets on successful login
+- Passwords are hashed with bcrypt. Five wrong passwords lock an account for 15 minutes.
+- Tokens carry a type: 15-minute access tokens, 7-day refresh tokens and 15-minute
+  password-reset tokens. Each is accepted only where its type is expected.
+- HTTP routes need an access token, except register and login. A socket needs an access
+  token to connect; messages are sent as the socket's own user, and a socket can join
+  only its own room.
+- API responses and socket messages expose only a user's id and username.
+- Request bodies are validated with whitelisting, and the HTTP API has a rate limit of
+  10 requests a minute per client.
 
-### Input Sanitization
+Not active yet, although the code is in the repository: Helmet headers, the request
+sanitisation middleware and the CSRF guard. The bundled HTML client keeps tokens in
+`localStorage`, and the Socket.IO server accepts any origin.
 
-- **Global Middleware**: All incoming requests are sanitized to prevent XSS and injection attacks
-- **DOMPurify Integration**: Uses DOMPurify to clean HTML content
-- **Recursive Sanitization**: Sanitizes nested objects and arrays in request bodies
-- **Query Parameters**: GET parameters are also sanitized
+## Scope
 
-### CSRF Protection
+In scope: the code in this repository.
 
-- **Custom CSRF Guard**: JWT-based CSRF protection for HTML clients
-- **Token Validation**: CSRF tokens are validated on state-changing requests
-- **Secure Headers**: CSRF protection works alongside security headers
-
-### Security Headers (Helmet)
-
-- **Content Security Policy (CSP)**: Prevents XSS attacks
-- **X-Frame-Options**: Prevents clickjacking attacks
-- **X-Content-Type-Options**: Prevents MIME type sniffing
-- **Strict-Transport-Security**: Enforces HTTPS connections
-- **Referrer-Policy**: Controls referrer information leakage
-
-### CORS Configuration
-
-- **Production Restrictions**: CORS origins restricted to allowed domains
-- **Development Flexibility**: More permissive in development environment
-- **Credentials Support**: Secure cookie/credential handling
-- **Method Restrictions**: Only necessary HTTP methods allowed
-
-### Rate Limiting
-
-- **Global Throttling**: 10 requests per minute per IP address
-- **Configurable Limits**: TTL and limit values can be adjusted per environment
-- **Automatic Blocking**: Excessive requests are automatically blocked
-
-## 🔑 Password Reset Flow
-
-### Secure Password Reset Process
-
-1. **Request Reset**: User provides username to initiate reset
-2. **Token Generation**: Secure JWT token generated with short expiry (15 minutes)
-3. **Token Storage**: Reset token stored in database with expiry timestamp
-4. **URL Generation**: Secure reset URL generated with embedded token
-5. **Email Notification**: Reset link sent to user's email (currently logged to console)
-6. **Token Validation**: Reset token validated before allowing password change
-7. **Password Update**: New password hashed and stored securely
-8. **Token Cleanup**: Reset token removed after successful password change
-
-### Password Reset Endpoints
-
-```http
-POST /auth/forgot-password
-Content-Type: application/json
-
-{
-  "username": "johndoe"
-}
-```
-
-```http
-POST /auth/reset-password?token=<reset_token>
-Content-Type: application/json
-
-{
-  "password": "NewSecurePassword123!"
-}
-```
-
-## 🚨 Security Monitoring & Logging
-
-### Security Events Logged
-
-- Failed login attempts
-- Account lockouts
-- Password reset requests
-- Suspicious activities
-
-### Error Handling
-
-- **Generic Error Messages**: Prevents information leakage through error messages
-- **Rate Limiting**: Protects against brute force attacks
-- **Input Validation**: Comprehensive validation prevents malformed data
-
-## 🔧 Security Configuration
-
-### Environment Variables
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/chatty_db"
-
-# JWT Configuration
-JWT_SECRET="your-super-secret-jwt-key-here"
-
-# Application
-PORT=3000
-NODE_ENV=production
-
-# CORS (Production)
-ALLOWED_ORIGINS="https://yourdomain.com,https://www.yourdomain.com"
-```
-
-### Production Checklist
-
-- [ ] Set strong JWT_SECRET (32+ characters, random)
-- [ ] Configure ALLOWED_ORIGINS for production domains
-- [ ] Enable HTTPS/TLS certificates
-- [ ] Set NODE_ENV=production
-- [ ] Configure proper database credentials
-- [ ] Enable security headers
-- [ ] Set up monitoring and alerting
-- [ ] Regular security audits and dependency updates
-
-## 📋 Security Best Practices
-
-### Development
-
-- Never commit secrets to version control
-- Use environment variables for sensitive configuration
-- Implement comprehensive input validation
-- Follow principle of least privilege
-- Regular security code reviews
-
-### Deployment
-
-- Use HTTPS in production
-- Implement proper firewall rules
-- Regular security updates and patches
-- Monitor for security vulnerabilities
-- Implement backup and recovery procedures
-
-### User Education
-
-- Encourage strong password policies
-- Educate about phishing attempts
-- Promote two-factor authentication (future enhancement)
-- Regular security awareness training
-
-## 🔮 Future Security Enhancements
-
-- [ ] Two-factor authentication (2FA)
-- [ ] Email integration for password reset
-- [ ] Advanced threat detection
-- [ ] Audit logging system
-- [ ] Security event monitoring dashboard
-- [ ] Automated security testing (SAST/DAST)
-- [ ] API versioning for backward compatibility
-- [ ] Rate limiting per user account
-- [ ] Session management improvements
-
-## 📞 Security Incident Response
-
-### Reporting Security Issues
-
-If you discover a security vulnerability, please report it responsibly:
-
-1. **Do not** create public GitHub issues for security vulnerabilities
-2. Email security concerns to: [security@yourdomain.com]
-3. Include detailed information about the vulnerability
-4. Allow reasonable time for response and fix
-
-### Incident Response Process
-
-1. **Detection**: Monitor security events and logs
-2. **Assessment**: Evaluate impact and severity
-3. **Containment**: Isolate affected systems
-4. **Recovery**: Restore systems and data
-5. **Lessons Learned**: Document and improve processes
-
-## 📚 Additional Resources
-
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [NestJS Security Best Practices](https://docs.nestjs.com/security)
-- [JWT Security Best Practices](https://tools.ietf.org/html/rfc8725)
-- [CORS Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+Out of scope: findings that need a stolen token or leaked environment secrets, and
+denial of service by volume.

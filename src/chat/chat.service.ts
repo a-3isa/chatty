@@ -12,7 +12,11 @@ export class ChatService {
   }) {
     return this.prisma.message.create({
       data,
-      include: { sender: true, receiver: true },
+      // Only public fields of the two users: this object is sent to clients.
+      include: {
+        sender: { select: { id: true, username: true } },
+        receiver: { select: { id: true, username: true } },
+      },
     });
   }
 

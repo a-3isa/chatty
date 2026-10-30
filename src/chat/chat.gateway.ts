@@ -11,6 +11,7 @@ import { ChatService } from './chat.service';
 import { Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from 'src/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -24,6 +25,7 @@ export class ChatGateway {
     private readonly chatService: ChatService,
     private configService: ConfigService,
     private jwtService: JwtService,
+    private prisma: PrismaService,
   ) {}
   @WebSocketServer() server;
 
@@ -32,6 +34,12 @@ export class ChatGateway {
   }
 
   handleConnection(client: Socket) {
+    // Handlers wait for this, so a 'join' sent right after connecting is not
+    // dropped while the user is looked up.
+    client.data.ready = this.authenticate(client);
+  }
+
+  private async authenticate(client: Socket): Promise<void> {
     try {
       const token =
         client.handshake.auth.token || // from auth object
@@ -53,7 +61,20 @@ export class ChatGateway {
       }
 
       const payload = this.jwtService.verify(cleaned, { secret: jwtSecret }); // use env secret
-      client.data.user = payload; // attach payload to client
+      // Only access tokens may open a socket, and the user must still exist.
+      if (payload.typ !== 'access') {
+        client.disconnect();
+        return;
+      }
+      const user = await this.prisma.user.findUnique({
+        where: { username: payload.username },
+        select: { id: true, username: true },
+      });
+      if (!user) {
+        client.disconnect();
+        return;
+      }
+      client.data.user = user; // { id, username } of the signed-in user
       console.log(`Client connected: username=${payload.username}`);
     } catch (err) {
       console.log(err);
@@ -73,7 +94,14 @@ export class ChatGateway {
     // @GetUser() user: User,
   ) {
     // console.log(payload);
-    const message = await this.chatService.createMessage(payload);
+    await client.data.ready;
+    if (!client.data.user) return;
+    // The sender is whoever owns this socket, never what the client claims.
+    const message = await this.chatService.createMessage({
+      senderId: client.data.user.id,
+      receiverId: payload.receiverId,
+      content: payload.content,
+    });
     // console.log(message);
     this.server.to(String(payload.receiverId)).emit('receiveMessage', message);
     return message;
@@ -81,7 +109,11 @@ export class ChatGateway {
 
   @SubscribeMessage('join')
   async handleJoin(client: Socket, userId: number) {
-    // console.log(userId);
+    await client.data.ready;
+    // A user may only join their own room; other rooms carry other people's messages.
+    if (String(userId) !== String(client.data.user?.id)) {
+      return;
+    }
     await client.join(String(userId));
     console.log(`User ${userId} joined room`);
   }

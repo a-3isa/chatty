@@ -6,16 +6,19 @@ export class SanitizationMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     // Sanitize request body
     if (req.body && typeof req.body === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       req.body = this.sanitizeObject(req.body) as any;
     }
 
     // Sanitize query parameters
     if (req.query && typeof req.query === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       req.query = this.sanitizeObject(req.query) as any;
     }
 
     // Sanitize URL parameters
     if (req.params && typeof req.params === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       req.params = this.sanitizeObject(req.params) as any;
     }
 
@@ -58,6 +61,7 @@ export class SanitizationMiddleware implements NestMiddleware {
     sanitized = sanitized.replace(/on\w+\s*=/gi, '');
 
     // Remove null bytes and other control characters
+    // eslint-disable-next-line no-control-regex -- matching control characters is the point
     sanitized = sanitized.replace(/[\u0000-\u001F\u007F]/gu, '');
 
     return sanitized;

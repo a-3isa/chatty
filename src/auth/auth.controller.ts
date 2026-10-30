@@ -1,8 +1,14 @@
-import { Controller, Post, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Query,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserAuthDto } from './dto/create-auth.dto';
-// import { GetUser } from './get-user.decorator';
-// import { User } from '@prisma/client';
+import { GetUser } from './get-user.decorator';
+import { User } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +47,14 @@ export class AuthController {
   }
 
   @Post('unlock-account')
-  async unlockAccount(@Body('username') username: string) {
+  async unlockAccount(
+    @Body('username') username: string,
+    @GetUser() user: User,
+  ) {
+    // Clearing someone else's lockout would undo brute-force protection.
+    if (username !== user.username) {
+      throw new ForbiddenException('You can only unlock your own account');
+    }
     return this.authService.unlockAccount(username);
   }
 }

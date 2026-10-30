@@ -1,18 +1,31 @@
 {
   "name": "chatty",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Real-time one-to-one chat API: NestJS, Socket.IO and Prisma on MongoDB, with JWT access and refresh tokens and account lockout",
+  "author": "Ahmed Ibrahim Hussien (https://github.com/a-3isa)",
   "private": true,
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a-3isa/chatty.git"
+  },
+  "homepage": "https://github.com/a-3isa/chatty#readme",
+  "bugs": {
+    "url": "https://github.com/a-3isa/chatty/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -30,7 +43,7 @@
     "@nestjs/platform-socket.io": "^11.1.6",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/websockets": "^11.1.6",
-    "@prisma/client": "^6.15.0",
+    "@prisma/client": "^6.19.3",
     "@types/dompurify": "^3.2.0",
     "@types/helmet": "^4.0.0",
     "@types/jsdom": "^21.1.7",
@@ -42,7 +55,7 @@
     "jsdom": "^26.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "prisma": "^6.15.0",
+    "prisma": "^6.19.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1"
@@ -90,6 +103,12 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    }
+  },
+  "overrides": {
+    "multer": "2.5.0"
   }
 }

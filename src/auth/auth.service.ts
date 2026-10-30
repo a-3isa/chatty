@@ -25,12 +25,14 @@ export class AuthService {
     });
 
     const payload = { username };
-    const accessToken: string = this.jwtService.sign(payload, {
-      expiresIn: '15m',
-    });
-    const refreshToken: string = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-    });
+    const accessToken: string = this.jwtService.sign(
+      { ...payload, typ: 'access' },
+      { expiresIn: '15m' },
+    );
+    const refreshToken: string = this.jwtService.sign(
+      { ...payload, typ: 'refresh' },
+      { expiresIn: '7d' },
+    );
     return { accessToken, refreshToken };
   }
 
@@ -65,12 +67,14 @@ export class AuthService {
       });
 
       const payload = { username };
-      const accessToken: string = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-      const refreshToken: string = this.jwtService.sign(payload, {
-        expiresIn: '7d',
-      });
+      const accessToken: string = this.jwtService.sign(
+        { ...payload, typ: 'access' },
+        { expiresIn: '15m' },
+      );
+      const refreshToken: string = this.jwtService.sign(
+        { ...payload, typ: 'refresh' },
+        { expiresIn: '7d' },
+      );
       return { userId: user.id, accessToken, refreshToken };
     } else {
       // Increment failed attempts
@@ -102,8 +106,11 @@ export class AuthService {
   refreshToken(refreshToken: string): { accessToken: string } {
     try {
       const payload = this.jwtService.verify(refreshToken);
+      if (payload.typ !== 'refresh') {
+        throw new Error('Not a refresh token');
+      }
       const newAccessToken = this.jwtService.sign(
-        { username: payload.username },
+        { username: payload.username, typ: 'access' },
         { expiresIn: '15m' },
       );
       return { accessToken: newAccessToken };
@@ -119,7 +126,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('User not found');
 
     const token = this.jwtService.sign(
-      { username: user.username },
+      { username: user.username, typ: 'reset' },
       { expiresIn: '15m' },
     );
 
@@ -141,6 +148,9 @@ export class AuthService {
   async resetPassword(token: string, newPassword: string) {
     try {
       const payload = this.jwtService.verify(token);
+      if (payload.typ !== 'reset') {
+        throw new Error('Not a reset token');
+      }
       const username = payload.username;
       const user = await this.prisma.user.findFirst({
         where: {
